@@ -1,0 +1,48 @@
+//
+// Created by fish on 2024/9/6.
+//
+
+#ifndef BSP_SYS_H
+#define BSP_SYS_H
+
+#include "bsp_def.h"
+#include "main.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+__attribute__((unused)) static void bsp_sys_reset() {
+    __set_FAULTMASK(1);
+    NVIC_SystemReset();
+}
+
+__attribute__((unused)) static void bsp_sys_shutdown() {
+    HAL_PWR_EnterSTANDBYMode();
+}
+
+__attribute__((unused)) static void bsp_sys_sleep() {
+    HAL_PWR_EnterSLEEPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
+}
+
+__attribute__((unused)) static void bsp_sys_stop() {
+    HAL_PWR_EnterSTANDBYMode();
+}
+
+__attribute__((unused)) static uint8_t bsp_sys_in_isr() {
+    uint32_t result;
+    __asm__ volatile("MRS %0, ipsr" : "=r"(result));
+    return (result);
+}
+
+/* Call after MX_TIM7_Init(), before using any delay function. */
+void delay_init(void);
+void delay_us(uint16_t us);
+void delay_u32_us(uint32_t us);
+void delay_ms(uint16_t ms);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
