@@ -7,13 +7,8 @@
  * @date 2026/3/17
  */
 
-#if 1
-
 #include "bsp_imu.h"
-#include <stdarg.h>
-#include <stdio.h>
-#include <time.h>
-
+#include <stdbool.h>
 #include "Fusion.h"
 #include "hscdtd008a.h"
 #include "icm45686.h"
@@ -42,10 +37,13 @@ static IMU_InitTypeDef imu_init = {
 #define abs(x) ((x) > 0 ? (x) : -(x))
 
 static imu_parameters_t fusion_imu_param;
-imu_data_t imu_data = {0};
-uint8_t imu_ok_flag = 0;
-uint8_t imu_tempctrl_finsh_flag = 1;
-uint8_t imu_init_finsh_flag = 0;
+static bool fusion_init_finsh_flag = false;
+
+static uint8_t imu_ok_flag = 0;
+// uint8_t imu_tempctrl_finsh_flag = 1;
+static imu_data_raw_t imu_data_raw;
+static HSCDTD008A_data_t mag_data;
+static imu_data_t imu_data = {0};
 
 // static float tmp117_temp;
 // static float aim_temp = 40.0f;
@@ -53,10 +51,8 @@ uint8_t imu_init_finsh_flag = 0;
 // static uint16_t stable_count_required = 200;
 // PID_TypeDef pid_temp;
 
-imu_data_raw_t imu_data_raw;
-HSCDTD008A_data_t mag_data;
-
 static void fusion_init(void);
+
 
 // Calibration parameters (replace with actual calibration data)
 static const FusionMatrix gyroscopeMisalignment = {{1.0f, 0.0f, 0.0f,
@@ -74,7 +70,7 @@ static const FusionVector hardIronOffset = {{7.6314566f,  -3.095440f, -7.6259514
 static FusionBias bias;
 static FusionAhrs ahrs;
 static FusionAhrsFlags flags = {
-    .initialising = 1
+    .initialising = true
 };
 
 
@@ -105,7 +101,9 @@ void bsp_imu_init(TIM_HandleTypeDef *htim) {
         BSP_IMU_DEBUG_PRINT("[IMU] Gyroscope Offset data read FAIL. Please run the calibration command manually.\r\n");
     }
     fusion_init();
-
+    BSP_IMU_DEBUG_PRINT("[IMU] Fusion algorithm Init %s\r\n",
+                        fusion_init_finsh_flag == true ? "SUCCESS" : "FAIL");
+    HAL_TIM_Base_Start_IT(htim);
 }
 
 imu_data_t* bsp_imu_GetData(void) {
@@ -153,19 +151,20 @@ static void fusion_init(void) {
     gyroscopeOffset.array[2] = fusion_imu_param.offset_data.gyro_offset[2];
     // Set AHRS settings
     const FusionAhrsSettings settings = {
-        .convention = FusionConventionNwu,
-        .gain = 0.5f,
-        .gyroscopeRange = fusion_imu_param.gyro_range, /* replace with actual gyroscope range */
-        .accelerationRejection = 10.0f,
-        .magneticRejection = 10.0f,
-        .recoveryTriggerPeriod = 5 * (uint32_t)fusion_imu_param.sample_freq, /* 5 seconds */
+        .convention = FusionConventionNwu,               // 地球坐标系：北(X)、西(Y)、上(Z)
+        .gain = 0.5f,                                    // 加速度计和磁力计对姿态的反馈校正增益
+        .gyroscopeRange = fusion_imu_param.gyro_range,   // 陀螺仪量程，单位：°/s
+        .accelerationRejection = 10.0f,                  // 加速度计拒绝阈值：与估计重力方向的夹角，单位：度
+        .magneticRejection = 10.0f,                      // 磁力计拒绝阈值：磁场方向误差角，单位：度
+        .recoveryTriggerPeriod = 5 * (uint32_t)fusion_imu_param.sample_freq, // 异常恢复触发周期，单位：采样次数（约 5 秒）
     };
     FusionAhrsSetSettings(&ahrs, &settings);
+    fusion_init_finsh_flag = true;
 }
 
 
 void fusion_update(void) {
-    if (imu_init_finsh_flag == 1) {
+    if (fusion_init_finsh_flag == true) {
         ICM45686_GetRawData(&imu_data_raw);
         hscdtd008a_GetStatus(&mag_data);
         if (mag_data.status.update_state)
@@ -190,7 +189,7 @@ void fusion_update(void) {
         // Print AHRS outputs
         const FusionEuler euler = FusionQuaternionToEuler(FusionAhrsGetQuaternion(&ahrs));
         const FusionVector earth = FusionAhrsGetEarthAcceleration(&ahrs);
-        if (flags.initialising == 1) {
+        if (flags.initialising == true) {
             flags = FusionAhrsGetFlags(&ahrs);
         } else {
             if (imu_ok_flag == 0) imu_ok_flag = 1;
@@ -218,6 +217,3 @@ void fusion_update(void) {
     }
 }
 
-
-
-#endif

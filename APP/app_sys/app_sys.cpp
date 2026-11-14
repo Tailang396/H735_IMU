@@ -11,6 +11,7 @@
 #include "bsp_flash.h"
 #include "bsp_imu.h"
 #include "icm45686.h"
+#include "tim.h"
 #include "tmp117.h"
 
 /* 从 Flash 复制函数代码到 ITCM，必须早于第一次调用。 */
@@ -27,27 +28,21 @@ void sys_main_init(void) {
     bsp_flash_init();
     // bsp_flash_SetDefault();
     bsp_flash_print_status();
-    bsp_imu_init(NULL);
+    bsp_imu_init(&htim6);
 
     bsp_rgb_set(0,50,0);
     HAL_Delay(2000);
 }
 
 void sys_main_while(void) {
-    static imu_data_raw_t raw;
     rgb_update();
-    static float temp;
-    temp = tmp117_GetData();
-    if (ICM45686_GetRawData(&raw) == 0) {
-        bsp_uart_printf(E_UART_DEBUG,
-                        "ACC(g): X=%.4f Y=%.4f Z=%.4f, GYRO(dps): X=%.3f Y=%.3f Z=%.3f, TEMP(C): tmp=%.2f, icm=%.2f\r\n",
-                        raw.acc_x, raw.acc_y, raw.acc_z,
-                        raw.gyro_x, raw.gyro_y, raw.gyro_z,
-                        temp, raw.temp);
-    }
-    // bsp_uart_printf(E_UART_DEBUG, "tmp117:%.2f, icm:%.2f\r\n", temp, raw.temp);
+    const imu_data_t *imu = bsp_imu_GetData();
+    bsp_uart_printf(E_UART_DEBUG,
+                    "ANGLE(deg): Roll=%.2f Pitch=%.2f Yaw=%.2f, EARTH ACC(g): X=%.4f Y=%.4f Z=%.4f\r\n",
+                    imu->angle.roll, imu->angle.pitch, imu->angle.yaw,
+                    imu->earth_acc.x, imu->earth_acc.y, imu->earth_acc.z);
 
-    delay_ms(1000);
+    delay_ms(10);
 }
 
 static void rgb_update() {
