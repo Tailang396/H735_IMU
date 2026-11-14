@@ -118,6 +118,7 @@ extern "C" {
 #endif
 
 imu_status_e ICM45686_Init(void);
+imu_status_e ICM45686_SoftCalibrate(uint16_t sample_times);
 int ICM45686_GetRawData(imu_data_raw_t *raw);
 imu_parameters_t ICM45686_GetParameter(void);
 uint8_t imu_offset_checksum(const imu_offset_data_t *offset_data);

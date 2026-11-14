@@ -6,8 +6,6 @@
 #define HSCDTD008A_H
 #include "main.h"
 
-// #define HSCDTD008A_USE_FREERTOS
-
 /* I2C Address */
 #define HSCDTD008A_I2C_ADDR 0x0C
 #define HSCDTD008A_I2C_WRITE_ADDR (HSCDTD008A_I2C_ADDR << 1)

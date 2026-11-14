@@ -11,7 +11,9 @@
 #define IMU_ENABLE  1
 
 #define BSP_IMU_DEBUG
-#define IMU_DEBUG E_UART_DEBUG
+#define BSP_IMU_INFO
+#define IMU_DEBUG_UART E_UART_DEBUG
+#define IMU_INFO_UART E_UART_DEBUG
 
 typedef struct {
     float mag_temp;
@@ -74,6 +76,8 @@ extern "C" {
 #endif
 
 void bsp_imu_init(TIM_HandleTypeDef *htim);
+// 在非中断上下文调用：写入成功后等待 5 秒并重启。
+void bsp_imu_request_gyro_calibration(uint16_t sample_times);
 imu_data_t* bsp_imu_GetData(void);
 // void bsp_imu_set_mode(void);
 // void bsp_tempctrl_init(void);

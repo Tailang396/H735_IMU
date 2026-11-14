@@ -169,7 +169,7 @@ HSCDTD008A_status_t hscdtd008a_reset(void) {
 }
 
 /**
- * @brief 初始化HSCDTD008A传感器 需要10ms
+ * @brief 初始化HSCDTD008A传感器 需要10ms 在FreeRTOS开启之前调用
  * 该函数执行HSCDTD008A传感器的完整初始化流程，包括复位、ID验证、配置和自检
  * @return HSCDTD008A_status_t 返回初始化状态
  */
@@ -177,11 +177,7 @@ HSCDTD008A_status_t hscdtd008a_Init(void) {
     if (hscdtd008a_reset() != HSCDTD008A_NO_ERR) {
         return HSCDTD008A_INIT_ERR;
     }
-#ifdef HSCDTD008A_USE_FREERTOS
-    osDelay(10);
-#else
     HAL_Delay(10);
-#endif
     if (hscdtd008a_read_id() != HSCDTD008A_DEV_ID) {
         return HSCDTD008A_INIT_ERR;
     }

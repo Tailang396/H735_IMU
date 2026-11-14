@@ -7,6 +7,7 @@
 #include "bsp_sys.h"
 #include "bsp_uart.h"
 #include <cstring>
+#include <cstdio>
 
 #include "bsp_flash.h"
 #include "bsp_imu.h"
@@ -14,10 +15,14 @@
 #include "tim.h"
 #include "tmp117.h"
 
+uint8_t sn[32] = {};
+uint8_t reset_flag = 0;
+
 /* 从 Flash 复制函数代码到 ITCM，必须早于第一次调用。 */
 static void itcm_init();
 static void uart_debug_callback(bsp_uart_e e, uint8_t *s, uint16_t l);
 static void rgb_update();
+
 
 void sys_main_init(void) {
     itcm_init();
@@ -28,6 +33,9 @@ void sys_main_init(void) {
     bsp_flash_init();
     // bsp_flash_SetDefault();
     bsp_flash_print_status();
+    bsp_flash_read("SN", sn, sizeof(sn) - 1);
+    bsp_uart_printf(E_UART_DEBUG, "[BSP] SN: %s\r\n", sn);
+
     bsp_imu_init(&htim6);
 
     bsp_rgb_set(0,50,0);
@@ -36,13 +44,23 @@ void sys_main_init(void) {
 
 void sys_main_while(void) {
     rgb_update();
+
     const imu_data_t *imu = bsp_imu_GetData();
     bsp_uart_printf(E_UART_DEBUG,
-                    "ANGLE(deg): Roll=%.2f Pitch=%.2f Yaw=%.2f, EARTH ACC(g): X=%.4f Y=%.4f Z=%.4f\r\n",
+                    "ANGLE(deg),TEMP(C),GYRO(dps): %.2f,%.2f,%.2f,%.2f,%.3f,%.3f,%.3f\r\n",
                     imu->angle.roll, imu->angle.pitch, imu->angle.yaw,
-                    imu->earth_acc.x, imu->earth_acc.y, imu->earth_acc.z);
-
+                    imu->temp.imu_temp,
+                    imu->raw_data.raw_gyro.gyro_x, imu->raw_data.raw_gyro.gyro_y,
+                    imu->raw_data.raw_gyro.gyro_z);
+    if (reset_flag == 1) bsp_imu_request_gyro_calibration(6000);
     delay_ms(10);
+}
+
+void uart_debug_callback(bsp_uart_e e, uint8_t *s, uint16_t l) {
+    if (memcmp(s, "imu cali", 8) == 0) {
+        reset_flag = 1;
+    }
+    bsp_uart_send(e, s, l);
 }
 
 static void rgb_update() {
@@ -77,10 +95,6 @@ static void rgb_update() {
     }
 }
 
-
-void uart_debug_callback(bsp_uart_e e, uint8_t *s, uint16_t l) {
-    bsp_uart_send(e, s, l);
-}
 
 
 /* 链接脚本导出的 ITCM 代码地址，使用 C 链接名称。 */

@@ -7,8 +7,6 @@
 
 #include "main.h"
 
-/*使能FREERTOS，Init需要在任务里面进行初始化 */
-// #define TMP117_USE_FREERTOS
 
 #define TMP117_I2C_ADDR        0x48          // 默认 ADD0 = GND
 #define TMP117_I2C_WRITE_ADDR  (TMP117_I2C_ADDR << 1)

@@ -22,8 +22,11 @@ extern "C" {
 #define RAM_D3 __attribute__((section(".ram_d3"), aligned(4)))
 
 __attribute__((unused)) static void bsp_assert_err(const char *file, uint32_t line) {
-    UNUSED(file);
-    UNUSED(line);
+    static uint8_t printing = 0;
+    if (!printing) {
+        printing = 1;
+        bsp_uart_printf(E_UART_DEBUG, "[ASSERT] %s:%lu\r\n", file, (unsigned long)line);
+    }
     // 开启 rtos 调度锁，强行停止其他任务，便于调试。
     // vTaskSuspendAll();
     bsp_rgb_set(255, 0, 0);

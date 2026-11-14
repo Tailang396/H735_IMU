@@ -24,7 +24,6 @@ static int icm45686_write_regs(uint8_t reg, const uint8_t* buf, uint32_t len);
 static int icm45686_read_regs(uint8_t reg, uint8_t* buf, uint32_t len);
 static int ICM45686_Init_Reg(const ICM45686_InitTypeDef* ICM45686_init_Struct);
 static void Sensitivity_Config(const ICM45686_InitTypeDef* ICM45686_init_Struct, imu_parameters_t* icm45686_param);
-static imu_status_e ICM45686_SoftCalibrate(uint16_t sample_times);
 
 
 // <==================================================顶层常用函数=====================================================>
@@ -101,11 +100,20 @@ int ICM45686_GetRawData(imu_data_raw_t* raw) {
 }
 
 imu_status_e ICM45686_SoftCalibrate(uint16_t sample_times) {
+    if (sample_times == 0 || imu_param.init_status != ICM45686_INIT_OK) {
+        return ICM45686_ERR;
+    }
     float sum_gx = 0.00f, sum_gy = 0.00f, sum_gz = 0.00f;
     imu_data_raw_t raw;
     for (int i = 0; i < sample_times; i++) {
-        ICM45686_GetRawData(&raw);
+        if (ICM45686_GetRawData(&raw) != 0) {
+            return ICM45686_ERR;
+        }
         sum_gx += raw.gyro_x, sum_gy += raw.gyro_y, sum_gz += raw.gyro_z;
+        if ((i + 1) % 10 == 0) {
+            bsp_uart_printf(ICM45686_DEBUG, "[IMU] Calibrating gyroscope: %u/%u. Please keep still.\r\n",
+                            (unsigned int)(i + 1), (unsigned int)sample_times);
+        }
         icm45686_delay_ms((uint16_t)imu_param.sample_time);
     }
     imu_param.offset_data.gyro_offset[0] = sum_gx / (float)sample_times;

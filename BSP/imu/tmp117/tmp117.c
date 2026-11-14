@@ -114,11 +114,7 @@ TMP117_Status_t tmp117_reset(void) {
     if (TMP117_WriteReg(TMP117_REG_CONFIG, config_reg) != TMP117_NO_ERR) {
         return TMP117_WRITE_ERR;
     };
-#ifdef TMP117_USE_FREERTOS
-    osDelay(5);
-#else
     HAL_Delay(5);
-#endif
     return TMP117_NO_ERR;
 }
 
