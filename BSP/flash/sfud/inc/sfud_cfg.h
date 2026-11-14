@@ -30,7 +30,7 @@
 #define _SFUD_CFG_H_
 
 // 调试模式
-// #define SFUD_DEBUG_MODE
+#define SFUD_DEBUG_MODE
 #define SFUD_LOG_PRINTF
 
 //使用芯片的SFDP

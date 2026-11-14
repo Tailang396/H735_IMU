@@ -91,7 +91,7 @@
 
 /* print debug information of flash */
 
-// #define PRINT_DEBUG
+#define PRINT_DEBUG
 #define PRINT_INFO
 
 #endif /* EF_CFG_H_ */
