@@ -47,6 +47,8 @@ file(GLOB_RECURSE USER_SOURCES CONFIGURE_DEPENDS
         "${CMAKE_CURRENT_SOURCE_DIR}/APP/*.c"
         "${CMAKE_CURRENT_SOURCE_DIR}/APP/*.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/BSP/*.c"
+        "${CMAKE_CURRENT_SOURCE_DIR}/Components/*.c"
+        "${CMAKE_CURRENT_SOURCE_DIR}/Components/*.cpp"
 )
 
 # Add sources to executable
@@ -78,6 +80,9 @@ recursion_include(${CMAKE_PROJECT_NAME}
 )
 recursion_include(${CMAKE_PROJECT_NAME}
         "${CMAKE_CURRENT_SOURCE_DIR}/BSP"
+)
+recursion_include(${CMAKE_PROJECT_NAME}
+        "${CMAKE_CURRENT_SOURCE_DIR}/Components"
 )
 
 # Add project symbols (macros)

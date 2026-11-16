@@ -15,6 +15,7 @@
 #include "tmp117.h"
 #include "bsp_flash.h"
 #include "bsp_sys.h"
+#include "PID.h"
 
 // 接入 CMSIS-RTOS2 后，在编译选项中定义 BSP_IMU_USE_RTOS=1。
 #ifdef BSP_IMU_USE_RTOS
@@ -59,11 +60,11 @@ static imu_data_raw_t imu_data_raw;
 static HSCDTD008A_data_t mag_data;
 static imu_data_t imu_data = {0};
 
-// static float tmp117_temp;
-// static float aim_temp = 40.0f;
-// static float temp_stable_threshold = 0.1f;
-// static uint16_t stable_count_required = 200;
-// PID_TypeDef pid_temp;
+static float tmp117_temp;
+static float aim_temp = 40.0f;
+static float temp_stable_threshold = 0.1f;
+static uint16_t stable_count_required = 200;
+PID_TypeDef pid_temp;
 
 static void fusion_init(void);
 static bsp_status_t imu_load_calibration(void);
