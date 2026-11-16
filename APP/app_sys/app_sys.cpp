@@ -35,7 +35,6 @@ void sys_main_init(void) {
     bsp_flash_print_status();
     bsp_flash_read("SN", sn, sizeof(sn) - 1);
     bsp_uart_printf(E_UART_DEBUG, "[BSP] SN: %s\r\n", sn);
-
     bsp_imu_init(&htim6);
 
     bsp_rgb_set(0,50,0);
