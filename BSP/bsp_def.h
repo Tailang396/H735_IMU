@@ -29,6 +29,7 @@ __attribute__((unused)) static void bsp_assert_err(const char *file, uint32_t li
     }
     // 开启 rtos 调度锁，强行停止其他任务，便于调试。
     // vTaskSuspendAll();
+    __disable_irq();
     bsp_rgb_set(255, 0, 0);
     while(1)
         __NOP();

@@ -44,15 +44,8 @@ void sys_main_init(void) {
 
 void sys_main_while(void) {
     rgb_update();
-
-    const imu_data_t *imu = bsp_imu_GetData();
-    // bsp_uart_printf(E_UART_DEBUG,
-    //                 "ANGLE(deg),TEMP(C),GYRO(dps): %.2f,%.2f,%.2f,%.2f,%.3f,%.3f,%.3f\r\n",
-    //                 imu->angle.roll, imu->angle.pitch, imu->angle.yaw,
-    //                 imu->temp.imu_temp,
-    //                 imu->raw_data.raw_gyro.gyro_x, imu->raw_data.raw_gyro.gyro_y,
-    //                 imu->raw_data.raw_gyro.gyro_z);
-    if (reset_flag == 1) bsp_imu_request_gyro_calibration(6000);
+    imu_print();
+    if (reset_flag == 1) bsp_imu_request_gyro_calibration(600);
     delay_ms(10);
 }
 
@@ -88,7 +81,7 @@ static void rgb_update() {
         /* 平滑曲线使亮暗转折更柔和，保持原先的最大通道亮度 50。 */
         const uint8_t brightness = static_cast<uint8_t>(
             50U * level * level * (300U - 2U * level) / 1000000U);
-        bsp_rgb_set(colors[color][0] * brightness,
+        bsp_rgb_set_dma(colors[color][0] * brightness,
                     colors[color][1] * brightness,
                     colors[color][2] * brightness);
 

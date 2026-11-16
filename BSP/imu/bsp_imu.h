@@ -82,6 +82,8 @@ imu_data_t* bsp_imu_GetData(void);
 void tempctrl_update(void);
 void fusion_update(void);
 
+void imu_print(void);
+
 #ifdef __cplusplus
 }
 #endif

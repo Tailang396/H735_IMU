@@ -62,10 +62,10 @@ static HSCDTD008A_data_t mag_data;
 static imu_data_t imu_data = {0};
 
 static float tmp117_temp;
-static float aim_temp = 40.0f;
+static float aim_temp = 36.0f;
 static float temp_stable_threshold = 0.1f;
 static uint16_t temp_stable_count_required = 200;
-static bool imu_tempctrl_finsh_flag = false;
+static bool imu_tempctrl_finsh_flag = true;
 static PID_TypeDef pid_temp;
 
 static void fusion_init(void);
@@ -92,6 +92,16 @@ static FusionAhrsFlags flags = {
     .initialising = true
 };
 
+void imu_print(void) {
+    if (imu_tempctrl_finsh_flag == true) {
+        bsp_uart_printf(E_UART_DEBUG,
+                   "ANGLE(deg),TEMP(C),GYRO(dps): %.2f,%.2f,%.2f,%.2f,%.3f,%.3f,%.3f\r\n",
+                   imu_data.angle.roll, imu_data.angle.pitch, imu_data.angle.yaw,
+                   imu_data.temp.imu_temp,
+                   imu_data.raw_data.raw_gyro.gyro_x, imu_data.raw_data.raw_gyro.gyro_y,
+                   imu_data.raw_data.raw_gyro.gyro_z);
+    }
+}
 
 /**
  * @brief BSP IMU 初始化函数
@@ -109,13 +119,17 @@ void bsp_imu_init(TIM_HandleTypeDef *htim) {
                         temp_st == TMP117_NO_ERR ? "SUCCESS" : "FAIL");
     (void)imu_st; (void)mag_st; (void)temp_st;
 
+    // tempctrl_init();
+    BSP_IMU_INFO_PRINT("[IMU] Temperature control Init SUCCESS\r\n");
+    BSP_IMU_INFO_PRINT("[IMU] Quick start: %s\r\n",
+                       imu_init.QUICK_START_STATE == IMU_ENABLE ? "ENABLED" : "DISABLED");
+    HAL_TIM_Base_Start_IT(htim);
+
     bsp_status_t imu_cali_st = imu_load_calibration();
     BSP_ASSERT(imu_cali_st == BSP_OK);
     fusion_init();
     BSP_IMU_INFO_PRINT("[IMU] Fusion algorithm Init %s\r\n",
                         fusion_init_finsh_flag == true ? "SUCCESS" : "FAIL");
-    tempctrl_init();
-    HAL_TIM_Base_Start_IT(htim);
 }
 
 
@@ -196,6 +210,7 @@ static bsp_status_t imu_load_calibration(void) {
 }
 
 static void tempctrl_init(void) {
+    imu_tempctrl_finsh_flag = false;
     PID_Init(&pid_temp, 150.0f, 0.4f, 0.0f, 400, 500);
     PID_SetMode(&pid_temp, PID_UNIPOLAR);
     HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_2);
@@ -208,13 +223,14 @@ void tempctrl_update(void) {
         if (tmp117_temp == 0) tmp117_temp = aim_temp;
         PID_Calculate(&pid_temp, aim_temp, tmp117_temp);
         __HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_2, (uint16_t)pid_temp.PIDout);
-        BSP_IMU_DEBUG_PRINT("%.1f, %.1f, %f\r\n", tmp117_temp, aim_temp, pid_temp.PIDout);
+        // BSP_IMU_DEBUG_PRINT("%.1f, %.1f, %f\r\n", tmp117_temp, aim_temp, pid_temp.PIDout);
         if (imu_tempctrl_finsh_flag == false) {
             static uint16_t count = 0;
-            // BSP_IMU_DEBUG_PRINT("%.1f, %.1f, %f\r\n", tmp117_temp, aim_temp, pid_temp.PIDout);
+            BSP_IMU_DEBUG_PRINT("%.1f, %.1f, %f\r\n", tmp117_temp, aim_temp, pid_temp.PIDout);
             if (abs(tmp117_temp - aim_temp) <= temp_stable_threshold) {
                 count++;
                 if (count >= temp_stable_count_required) {
+                    BSP_IMU_INFO_PRINT("[IMU] Temperature reached target and is stable: %.1f C\r\n", tmp117_temp);
                     imu_tempctrl_finsh_flag = true;
                 }
             } else {
