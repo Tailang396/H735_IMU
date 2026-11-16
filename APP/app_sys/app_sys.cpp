@@ -46,12 +46,12 @@ void sys_main_while(void) {
     rgb_update();
 
     const imu_data_t *imu = bsp_imu_GetData();
-    bsp_uart_printf(E_UART_DEBUG,
-                    "ANGLE(deg),TEMP(C),GYRO(dps): %.2f,%.2f,%.2f,%.2f,%.3f,%.3f,%.3f\r\n",
-                    imu->angle.roll, imu->angle.pitch, imu->angle.yaw,
-                    imu->temp.imu_temp,
-                    imu->raw_data.raw_gyro.gyro_x, imu->raw_data.raw_gyro.gyro_y,
-                    imu->raw_data.raw_gyro.gyro_z);
+    // bsp_uart_printf(E_UART_DEBUG,
+    //                 "ANGLE(deg),TEMP(C),GYRO(dps): %.2f,%.2f,%.2f,%.2f,%.3f,%.3f,%.3f\r\n",
+    //                 imu->angle.roll, imu->angle.pitch, imu->angle.yaw,
+    //                 imu->temp.imu_temp,
+    //                 imu->raw_data.raw_gyro.gyro_x, imu->raw_data.raw_gyro.gyro_y,
+    //                 imu->raw_data.raw_gyro.gyro_z);
     if (reset_flag == 1) bsp_imu_request_gyro_calibration(6000);
     delay_ms(10);
 }

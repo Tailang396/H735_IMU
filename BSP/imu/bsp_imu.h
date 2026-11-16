@@ -60,8 +60,8 @@ typedef struct {
 
 typedef struct {
     uint8_t MAG_STATE;            //是否启用磁力计
-    uint16_t CALI_SAMPLE_TIMES;   //校准采样次数 0是不校准  500够用
-    uint16_t TMEP_CTRL_STATE;     //温度控制状态
+    uint8_t QUICK_START_STATE;   //快速启动模式
+    uint8_t TMEP_CTRL_STATE;     //温度控制状态
 } IMU_InitTypeDef;
 
 typedef struct {
@@ -79,9 +79,7 @@ void bsp_imu_init(TIM_HandleTypeDef *htim);
 // 在非中断上下文调用：写入成功后等待 5 秒并重启。
 void bsp_imu_request_gyro_calibration(uint16_t sample_times);
 imu_data_t* bsp_imu_GetData(void);
-// void bsp_imu_set_mode(void);
-// void bsp_tempctrl_init(void);
-// void bsp_tempctrl_update(void);
+void tempctrl_update(void);
 void fusion_update(void);
 
 #ifdef __cplusplus

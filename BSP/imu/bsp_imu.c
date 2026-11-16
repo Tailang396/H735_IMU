@@ -16,6 +16,7 @@
 #include "bsp_flash.h"
 #include "bsp_sys.h"
 #include "PID.h"
+#include "tim.h"
 
 // 接入 CMSIS-RTOS2 后，在编译选项中定义 BSP_IMU_USE_RTOS=1。
 #ifdef BSP_IMU_USE_RTOS
@@ -44,9 +45,9 @@
  * 作为静态常量，该配置在程序运行期间保持不变。
  */
 static IMU_InitTypeDef imu_init = {
-    .CALI_SAMPLE_TIMES = 600,
+    .QUICK_START_STATE = IMU_DISABLE,
     .MAG_STATE = IMU_DISABLE,
-    .TMEP_CTRL_STATE = IMU_DISABLE
+    .TMEP_CTRL_STATE = IMU_ENABLE
 };
 
 #define abs(x) ((x) > 0 ? (x) : -(x))
@@ -63,11 +64,13 @@ static imu_data_t imu_data = {0};
 static float tmp117_temp;
 static float aim_temp = 40.0f;
 static float temp_stable_threshold = 0.1f;
-static uint16_t stable_count_required = 200;
-PID_TypeDef pid_temp;
+static uint16_t temp_stable_count_required = 200;
+static bool imu_tempctrl_finsh_flag = false;
+static PID_TypeDef pid_temp;
 
 static void fusion_init(void);
 static bsp_status_t imu_load_calibration(void);
+static void tempctrl_init(void);
 
 
 // Calibration parameters (replace with actual calibration data)
@@ -111,6 +114,7 @@ void bsp_imu_init(TIM_HandleTypeDef *htim) {
     fusion_init();
     BSP_IMU_INFO_PRINT("[IMU] Fusion algorithm Init %s\r\n",
                         fusion_init_finsh_flag == true ? "SUCCESS" : "FAIL");
+    tempctrl_init();
     HAL_TIM_Base_Start_IT(htim);
 }
 
@@ -191,37 +195,34 @@ static bsp_status_t imu_load_calibration(void) {
     return BSP_OK;
 }
 
-// void bsp_tempctrl_init(void) {
-//     PID_Init(&pid_temp, 150.0f, 0.4f, 0.0f, 400, 500);
-//     pid_temp.polarity = PID_UNIPOLAR;
-//     HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4);
-//     __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_4, 0);
-// }
-//
-// void bsp_tempctrl_update(void) {
-//     if (imu_init.TMEP_CTRL_STATE == IMU_ENABLE) {
-//         if (app_sensor_GetTMP117OSFlag() == 0)
-//             tmp117_temp = tmp117_GetData();
-//         else
-//             tmp117_temp = app_sensor_GetTMP117Data();
-//         if (tmp117_temp == 0) tmp117_temp = aim_temp;
-//         PID_Calculate(&pid_temp, aim_temp, tmp117_temp);
-//         __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_4, (uint16_t)pid_temp.PIDout);
-//         if (imu_tempctrl_finsh_flag == 0) {
-//             static uint16_t count = 0;
-//             bsp_uart_printf(E_UART_DEBUG, "%.1f, %.1f, %f\r\n", tmp117_temp, aim_temp, pid_temp.PIDout);
-//             if (abs(tmp117_temp - aim_temp) <= temp_stable_threshold) {
-//                 count++;
-//                 if (count >= stable_count_required) {
-//                     imu_tempctrl_finsh_flag = 1;
-//                 }
-//             }
-//             else {
-//                 count = 0;
-//             }
-//         }
-//     }
-// }
+static void tempctrl_init(void) {
+    PID_Init(&pid_temp, 150.0f, 0.4f, 0.0f, 400, 500);
+    PID_SetMode(&pid_temp, PID_UNIPOLAR);
+    HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_2);
+    __HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_2, 0);
+}
+
+void tempctrl_update(void) {
+    if (imu_init.TMEP_CTRL_STATE == IMU_ENABLE) {
+        tmp117_temp = tmp117_GetData();
+        if (tmp117_temp == 0) tmp117_temp = aim_temp;
+        PID_Calculate(&pid_temp, aim_temp, tmp117_temp);
+        __HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_2, (uint16_t)pid_temp.PIDout);
+        BSP_IMU_DEBUG_PRINT("%.1f, %.1f, %f\r\n", tmp117_temp, aim_temp, pid_temp.PIDout);
+        if (imu_tempctrl_finsh_flag == false) {
+            static uint16_t count = 0;
+            // BSP_IMU_DEBUG_PRINT("%.1f, %.1f, %f\r\n", tmp117_temp, aim_temp, pid_temp.PIDout);
+            if (abs(tmp117_temp - aim_temp) <= temp_stable_threshold) {
+                count++;
+                if (count >= temp_stable_count_required) {
+                    imu_tempctrl_finsh_flag = true;
+                }
+            } else {
+                count = 0;
+            }
+        }
+    }
+}
 
 static void fusion_init(void) {
     FusionBiasInitialise(&bias, (uint32_t)fusion_imu_param.sample_freq);

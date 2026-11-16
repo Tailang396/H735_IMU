@@ -2,15 +2,13 @@
 #define __PID_H
 
 #include "main.h"
-
-typedef enum
-{
+/* 可选值为 PID_UNIPOLAR（单极性）或 PID_BIPOLAR（双极性）*/
+typedef enum {
     PID_UNIPOLAR = 0,
     PID_BIPOLAR = 1
 } PID_Polarity;
 
-typedef struct
-{
+typedef struct {
     float kp, ki, kd;
     float Aim, Real;
     float err;
